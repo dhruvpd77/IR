@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Preventive maintenance · IR Maintenance{% endblock %}
+{% block eyebrow %}Planned visits{% endblock %}
+{% block page_title %}Preventive maintenance{% endblock %}
+{% block content %}
+<div class="pm-toolbar">
+  <form class="pm-search" method="get">
+    <input type="hidden" name="view" value="{{ view }}">
+    <input type="hidden" name="month" value="{{ month }}">
+    <input type="hidden" name="week" value="{{ week }}">
+    <input type="hidden" name="stream" value="{{ stream }}">
+    <input type="hidden" name="vendor" value="{{ vendor }}">
+    <label class="pm-field">Search
+      <input type="search" name="q" value="{{ q }}" placeholder="Value stream, equipment, or location">
+    </label>
+    <button class="btn btn-ghost" type="submit">Search</button>
+  </form>
+  <a class="btn btn-dark" href="{% url 'pm_analytics' %}?month={{ month|urlencode }}&week={{ week|urlencode }}&stream={{ stream|urlencode }}&vendor={{ vendor|urlencode }}">Analytics</a>
+  <form class="pm-upload" method="post" action="{% url 'pm_upload' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label class="pm-file">
+      <input class="pm-file-input" type="file" name="file" accept=".xlsx" required>
+      <span class="btn btn-ghost">Choose Excel</span>
+      <span class="pm-file-name" data-file-name>No file chosen</span>
+    </label>
+    <button class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-upload"></use></svg>Upload plan</button>
+  </form>
+</div>
+<form class="pm-period" method="get">
+  <input type="hidden" name="view" value="all">
+  <input type="hidden" name="q" value="{{ q }}">
+  <label class="pm-field">Month
+    <select name="month" onchange="this.form.week.value=''; this.form.stream.value=''; this.form.vendor.value=''; this.form.submit();">
+      <option value="">All months</option>
+      {% for name in months %}
+      <option value="{{ name }}" {% if month == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Week
+    <select name="week" onchange="this.form.submit();">
+      <option value="">All weeks</option>
+      {% for item in weeks %}
+      <option value="{{ item.key }}" {% if week == item.key %}selected{% endif %}>{{ item.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Value stream
+    <select name="stream" onchange="this.form.submit();">
+      <option value="">All value streams</option>
+      {% for name in stream_names %}
+      <option value="{{ name }}" {% if stream == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Vendor
+    <select name="vendor" onchange="this.form.submit();">
+      <option value="">All vendors</option>
+      {% for name in vendor_names %}
+      <option value="{{ name }}" {% if vendor == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<div class="pm-kpis">
+  <a class="desk-kpi hot {% if view == 'overdue' %}is-on{% endif %}" href="{% url 'pm_list' %}?view=overdue{% if q %}&q={{ q|urlencode }}{% endif %}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">
+    <span>Overdue</span><b>{{ counts.overdue }}</b><small>Past the plan date</small>
+  </a>
+  <a class="desk-kpi pending {% if view == 'due' %}is-on{% endif %}" href="{% url 'pm_list' %}?view=due{% if q %}&q={{ q|urlencode }}{% endif %}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">
+    <span>Due in 7 days</span><b>{{ counts.due }}</b><small>Reminder window</small>
+  </a>
+  <a class="desk-kpi attempted {% if view == 'upcoming' %}is-on{% endif %}" href="{% url 'pm_list' %}?view=upcoming{% if q %}&q={{ q|urlencode }}{% endif %}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">
+    <span>Upcoming</span><b>{{ counts.upcoming }}</b><small>Later than 7 days</small>
+  </a>
+  <a class="desk-kpi done {% if view == 'completed' %}is-on{% endif %}" href="{% url 'pm_list' %}?view=completed{% if q %}&q={{ q|urlencode }}{% endif %}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">
+    <span>Completed</span><b>{{ counts.completed }}</b><small>{{ counts.month }} finished this month</small>
+  </a>
+  <a class="desk-kpi idle {% if view == 'all' %}is-on{% endif %}" href="{% url 'pm_list' %}?view=all{% if q %}&q={{ q|urlencode }}{% endif %}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">
+    <span>Completion</span><b>{{ counts.rate|floatformat:1 }}%</b><small>{{ counts.completed }} of {{ counts.all }}</small>
+  </a>
+</div>
+
+<div class="sheet sheet-plain table-wrap">
+  <table class="req-table">
+    <thead>
+      <tr>
+        <th>Value stream</th>
+        <th>Equipment</th>
+        <th>Location</th>
+        <th>Vendor</th>
+        <th>Frequency</th>
+        <th>Month</th>
+        <th>Plan date</th>
+        <th>Done date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr class="{% if task.is_done %}status-completed{% elif task.is_overdue %}status-overdue{% elif task.is_reminder %}status-due{% else %}status-upcoming{% endif %}">
+        <td class="main-cell" data-label="Value stream"><b>{{ task.value_stream }}</b></td>
+        <td class="main-cell" data-label="Equipment">
+          <b>{{ task.equipment_name }}</b>
+          {% if task.asset_name %}<div class="muted">{{ task.asset_name }}{% if task.asset_number %} · {{ task.asset_number }}{% endif %}</div>{% endif %}
+        </td>
+        <td data-label="Location">{{ task.location }}</td>
+        <td data-label="Vendor">{% if task.vendor_display %}<b>{{ task.vendor_display }}</b>{% else %}—{% endif %}</td>
+        <td data-label="Frequency"><b>{{ task.frequency }}</b><div class="muted">{{ task.frequency_label }}</div></td>
+        <td data-label="Month">{{ task.schedule_month }}</td>
+        <td data-label="Plan date"><b>{{ task.plan_date|date:"d M Y" }}</b></td>
+        <td data-label="Done date">{% if task.completed_on %}<b>{{ task.completed_on|date:"d M Y" }}</b>{% else %}—{% endif %}</td>
+        <td data-label="Action">
+          <div class="table-actions">
+            {% if not task.is_done %}
+            <button type="button" class="btn btn-primary btn-sm" data-pm-complete="{% url 'pm_complete' task.pk %}" data-pm-name="{{ task.equipment_name }}" data-pm-today="{{ today|date:'Y-m-d' }}">Complete</button>
+            {% endif %}
+            <a class="btn btn-ghost btn-sm" href="{% url 'pm_detail' task.pk %}">Open</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" class="empty">{% if month %}Nothing in {{ month }} for this filter.{% else %}Nothing in this list.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page.paginator.num_pages > 1 %}
+<nav class="pm-pages">
+  {% if page.has_previous %}<a href="?view={{ view }}&q={{ q|urlencode }}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}{% if month %} · {{ month }}{% endif %}{% if week_label %} · {{ week_label }}{% endif %}</span>
+  {% if page.has_next %}<a href="?view={{ view }}&q={{ q|urlencode }}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}&page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+
+<dialog id="pm-complete-dialog" class="reject-dialog pm-dialog">
+  <form id="pm-complete-form" method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="list">
+    <h2>Complete maintenance</h2>
+    <p class="muted" id="pm-complete-name"></p>
+    <label class="lbl">Date completed
+      <input type="date" name="completed_on" required max="{{ today|date:'Y-m-d' }}">
+    </label>
+    <label class="lbl">Notes, optional
+      <textarea name="completion_notes" placeholder="You can leave this blank."></textarea>
+    </label>
+    <div class="table-actions">
+      <button class="btn btn-primary" type="submit">Save completion</button>
+      <button class="btn btn-ghost" type="button" data-pm-close>Cancel</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}People · IR Maintenance{% endblock %}
+{% block eyebrow %}Access{% endblock %}
+{% block page_title %}People{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-primary" href="{% url 'user_create' %}">Add user</a>
+{% endblock %}
+{% block content %}
+<p class="muted">Super admin creates each admin or employee with a sign-in ID and password. Sample names are for the demo.</p>
+<form class="filter-row" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name, ID, code, or department">
+  <button class="btn btn-dark" type="submit">Search</button>
+</form>
+<div class="panel">
+  <table class="data-table">
+    <thead><tr><th>Person</th><th>Sign-in ID</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for person in people %}
+      <tr>
+        <td data-label="Person">
+          <strong>{{ person.get_full_name|default:person.username }}</strong>
+          <div class="muted">{{ person.employee_code }}{% if person.phone %} · {{ person.phone }}{% endif %}</div>
+        </td>
+        <td data-label="Sign-in ID">{{ person.username }}</td>
+        <td data-label="Role"><span class="pill {% if person.role == 'superadmin' %}priority-critical{% elif person.role == 'admin' %}status-attempted{% else %}priority-low{% endif %}">{{ person.get_role_display }}</span></td>
+        <td data-label="Department">{{ person.department|default:"—" }}</td>
+        <td data-label="Status">{% if person.is_active %}<span class="pill status-completed">Active</span>{% else %}<span class="pill priority-low">Inactive</span>{% endif %}</td>
+        <td data-label="Action">
+          <div class="row-actions">
+            <a class="btn btn-ghost" href="{% url 'user_password' person.pk %}">Password</a>
+            {% if person.pk != user.pk %}
+            <form method="post" action="{% url 'user_toggle' person.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-ghost" type="submit">{% if person.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No people match this search.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

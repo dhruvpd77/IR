@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ item.name }} · Inventory{% endblock %}
+{% block eyebrow %}{{ item.sku }}{% endblock %}
+{% block page_title %}{{ item.name }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'inventory_list' %}">Back to inventory</a>
+{% if item.is_low %}<div class="banner-error">On hand is at or below the minimum of {{ item.min_quantity }} {{ item.unit }}.</div>{% endif %}
+<section class="split">
+  <article class="panel">
+    <div class="panel-bd">
+      <p class="eyebrow">On hand</p>
+      <div class="giant">{{ item.quantity|intcomma }} <small>{{ item.unit }}</small></div>
+      <p>Minimum {{ item.min_quantity }} {{ item.unit }} · {{ item.location }}</p>
+      {% if item.description %}<p class="muted" style="margin-top:.6rem">{{ item.description }}</p>{% endif %}
+      <form method="post" class="stack js-once" style="margin-top:1.2rem">
+        {% csrf_token %}
+        <div class="prio-row">
+          <label class="prio"><input type="radio" name="direction" value="receive" checked><span>Receive</span></label>
+          <label class="prio"><input type="radio" name="direction" value="issue"><span>Remove</span></label>
+        </div>
+        <label class="lbl">Quantity<input type="number" name="quantity" min="1" value="1" required></label>
+        <label class="lbl">Note<input type="text" name="note" placeholder="Delivery note or reason"></label>
+        <button class="btn btn-primary" type="submit">Update stock</button>
+      </form>
+    </div>
+  </article>
+  <article class="panel">
+    <div class="panel-hd"><h2>Movement</h2></div>
+    <div class="panel-bd">
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Change</th><th>Balance</th><th>Why</th></tr></thead>
+        <tbody>
+          {% for move in movements %}
+          <tr>
+            <td data-label="When">{{ move.created_at|date:"d M, H:i" }}<div class="muted">{{ move.created_by.get_full_name|default:"" }}</div></td>
+            <td data-label="Change" class="{% if move.quantity_change > 0 %}qty-up{% else %}qty-down{% endif %}">{% if move.quantity_change > 0 %}+{% endif %}{{ move.quantity_change }}</td>
+            <td data-label="Balance">{{ move.balance_after }}</td>
+            <td data-label="Why">
+              {{ move.get_reason_display }}
+              {% if move.ticket %}<div><a href="{{ move.ticket.get_absolute_url }}">{{ move.ticket.ticket_no }}</a></div>{% endif %}
+              {% if move.note %}<div class="muted">{{ move.note }}</div>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">No movements yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

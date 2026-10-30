@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Add user · IR Maintenance{% endblock %}
+{% block eyebrow %}Access{% endblock %}
+{% block page_title %}Create a sign-in{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'user_list' %}">Back to people</a>
+<p class="muted">This ID and password are what they type on the sign-in screen. Choose Admin for maintenance leads, or Employee for the shop floor.</p>
+<form method="post" class="panel js-once" autocomplete="off">
+  {% csrf_token %}
+  <div class="panel-bd form-grid">
+    <label class="lbl">First name
+      <input name="first_name" required value="{{ form.first_name.value|default_if_none:'' }}">
+      {{ form.first_name.errors }}
+    </label>
+    <label class="lbl">Last name
+      <input name="last_name" required value="{{ form.last_name.value|default_if_none:'' }}">
+      {{ form.last_name.errors }}
+    </label>
+    <label class="lbl">Sign-in ID
+      <input name="username" required autocomplete="off" value="{{ form.username.value|default_if_none:'' }}">
+      {{ form.username.errors }}
+    </label>
+    <label class="lbl">Employee code
+      <input name="employee_code" placeholder="Leave blank to assign one" value="{{ form.employee_code.value|default_if_none:'' }}">
+      {{ form.employee_code.errors }}
+    </label>
+    <label class="lbl">Role
+      <select name="role">
+        {% for value, label in form.fields.role.choices %}
+        <option value="{{ value }}" {% if form.role.value|default:"admin" == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {{ form.role.errors }}
+    </label>
+    <label class="lbl">Department
+      <input name="department" list="departments" required value="{{ form.department.value|default_if_none:'' }}">
+      <datalist id="departments">
+        <option value="Maintenance"></option>
+        <option value="Assembly"></option>
+        <option value="Testing"></option>
+        <option value="Quality"></option>
+        <option value="Reliability"></option>
+        <option value="Stores"></option>
+      </datalist>
+      {{ form.department.errors }}
+    </label>
+    <label class="lbl">Extension
+      <input name="phone" value="{{ form.phone.value|default_if_none:'' }}">
+    </label>
+    <label class="lbl">Password
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      {{ form.password.errors }}
+    </label>
+    <label class="lbl wide">Confirm password
+      <input type="password" name="confirm_password" required minlength="8" autocomplete="new-password">
+      {{ form.confirm_password.errors }}
+    </label>
+    <div class="wide"><button class="btn btn-primary" type="submit">Create user</button></div>
+  </div>
+</form>
+{% endblock %}

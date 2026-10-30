@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ task.equipment_name }} · Preventive maintenance{% endblock %}
+{% block eyebrow %}{{ task.value_stream }}{% endblock %}
+{% block page_title %}{{ task.equipment_name }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'pm_list' %}">← Preventive maintenance</a>
+<article class="pm-board {% if task.is_done %}is-done{% elif task.is_overdue %}is-overdue{% elif task.is_reminder %}is-reminder{% else %}is-upcoming{% endif %}">
+  <header class="pm-board-hd">
+    <div>
+      <p>{{ task.value_stream }}</p>
+      <h2>{{ task.equipment_name }}</h2>
+      {% if task.asset_name %}<span class="pm-asset">{{ task.asset_name }}{% if task.asset_number %} · {{ task.asset_number }}{% endif %}</span>{% endif %}
+    </div>
+    <div class="pm-board-due">
+      {% if task.is_done %}
+      <span>Completed</span>
+      <strong>{{ task.completed_on|date:"d M Y" }}</strong>
+      <small>Plan was {{ task.plan_date|date:"d M Y" }}</small>
+      {% elif task.reminder_label %}
+      <span>{{ task.reminder_label }}</span>
+      <strong>{{ task.plan_date|date:"d M Y" }}</strong>
+      <small>Plan date · {{ task.schedule_month }}</small>
+      {% else %}
+      <span>Upcoming</span>
+      <strong>{{ task.plan_date|date:"d M Y" }}</strong>
+      <small>Plan date · {{ task.schedule_month }}</small>
+      {% endif %}
+    </div>
+  </header>
+  <div class="pm-board-grid">
+    <div class="pm-cells">
+      <div><span>Location</span><strong>{{ task.location }}</strong></div>
+      <div><span>Frequency</span><strong>{{ task.frequency }} · {{ task.frequency_label }}</strong></div>
+      <div><span>Scheduled month</span><strong>{{ task.schedule_month }}</strong></div>
+      <div><span>Plan date</span><strong>{{ task.plan_date|date:"d M Y" }}</strong></div>
+      <div><span>Vendor</span><strong>{{ task.vendor_display|default:"—" }}</strong></div>
+      <div><span>Done by</span><strong>{{ task.work_type|default:"—" }}</strong></div>
+    </div>
+    <aside class="pm-action">
+      {% if task.is_done %}
+      <h2>This visit is complete</h2>
+      <p>Finished on {{ task.completed_on|date:"d M Y" }}{% if task.completed_by %} by {{ task.completed_by.get_full_name|default:task.completed_by.username }}{% endif %}.</p>
+      {% if task.completion_notes %}<p class="pm-note">{{ task.completion_notes }}</p>{% endif %}
+      {% if next_task %}
+      <div class="pm-next">
+        <span>Next schedule</span>
+        <strong>{{ next_task.plan_date|date:"d M Y" }}</strong>
+        <small>{{ next_task.schedule_month }} · reminder one week before</small>
+      </div>
+      <a class="btn btn-primary" href="{% url 'pm_detail' next_task.pk %}">Open next visit</a>
+      {% endif %}
+      {% else %}
+      <h2>Complete maintenance</h2>
+      <p>Choose the date this visit was finished. A note is optional. The next one is planned {{ task.frequency_label|lower }} after that date.</p>
+      <form method="post" action="{% url 'pm_complete' task.pk %}">
+        {% csrf_token %}
+        <label>Date completed
+          <input type="date" name="completed_on" required value="{{ today }}" max="{{ today }}">
+        </label>
+        <label>Notes <span class="muted">optional</span>
+          <textarea name="completion_notes" placeholder="Example: Oil checked. No leak. Returned to service."></textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Complete maintenance</button>
+      </form>
+      {% endif %}
+    </aside>
+  </div>
+</article>
+{% endblock %}

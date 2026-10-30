@@ -1,0 +1,16 @@
+{% if user.is_admin_role %}
+<dialog id="reject-dialog" class="reject-dialog">
+  <form id="reject-form" method="post" class="stack">
+    {% csrf_token %}
+    <h2>Reject this request</h2>
+    <p class="muted">Idle time will not start. Tell the employee why this request was not accepted.</p>
+    <label class="lbl">Reason
+      <textarea name="reject_reason" required minlength="5" placeholder="Example: Duplicate request. The pump is already in another job."></textarea>
+    </label>
+    <div class="table-actions">
+      <button class="btn btn-reject" type="submit">Reject request</button>
+      <button class="btn btn-ghost" type="button" data-reject-close>Cancel</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}

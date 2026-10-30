@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Requests · IR Maintenance{% endblock %}
+{% block eyebrow %}Queue{% endblock %}
+{% block page_title %}Requests{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-primary" href="{% url 'ticket_create' %}">New request</a>
+{% endblock %}
+{% block content %}
+<nav class="filters filters-5">
+  <a class="filter filter-all {% if status == 'all' %}is-on{% endif %}" href="?status=all&q={{ q|urlencode }}&priority={{ priority }}&category={{ category_id }}">All <b>{{ counts.all }}</b></a>
+  <a class="filter filter-pending {% if status == 'pending' %}is-on{% endif %}" href="?status=pending&q={{ q|urlencode }}&priority={{ priority }}&category={{ category_id }}">Received <b>{{ counts.pending }}</b></a>
+  <a class="filter filter-attempted {% if status == 'attempted' %}is-on{% endif %}" href="?status=attempted&q={{ q|urlencode }}&priority={{ priority }}&category={{ category_id }}">Accepted <b>{{ counts.attempted }}</b></a>
+  <a class="filter filter-completed {% if status == 'completed' %}is-on{% endif %}" href="?status=completed&q={{ q|urlencode }}&priority={{ priority }}&category={{ category_id }}">Done <b>{{ counts.completed }}</b></a>
+  <a class="filter filter-rejected {% if status == 'rejected' %}is-on{% endif %}" href="?status=rejected&q={{ q|urlencode }}&priority={{ priority }}&category={{ category_id }}">Rejected <b>{{ counts.rejected }}</b></a>
+</nav>
+<form class="filter-row" method="get">
+  <input type="hidden" name="status" value="{{ status }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search ticket, equipment, location, or person">
+  <select name="category">
+    <option value="">All value streams</option>
+    {% for cat in categories %}
+    <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="priority">
+    <option value="">All priorities</option>
+    {% for value, label in priorities %}
+    <option value="{{ value }}" {% if priority == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-dark" type="submit">Apply</button>
+</form>
+<p class="muted">Showing {{ shown }}</p>
+
+<div class="sheet sheet-plain table-wrap">
+  <table class="req-table">
+    <thead>
+      <tr>
+        <th>Request</th>
+        <th>Value stream</th>
+        <th>Equipment</th>
+        <th>Location</th>
+        <th>From</th>
+        <th>Idle</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ticket in tickets %}
+      <tr class="status-{{ ticket.status }}">
+        <td data-label="Request">
+          <b>{{ ticket.ticket_no }}</b>
+          <div class="muted">{{ ticket.created_at|date:"d M, H:i" }}</div>
+        </td>
+        <td class="main-cell" data-label="Value stream"><b>{{ ticket.category.name }}</b></td>
+        <td class="main-cell" data-label="Equipment"><b>{{ ticket.subcategory.name }}</b></td>
+        <td class="main-cell" data-label="Location"><b>{{ ticket.asset.location }}</b></td>
+        <td data-label="From">{{ ticket.raised_by.get_full_name|default:ticket.raised_by.username }}</td>
+        <td class="idle-cell" data-label="Idle">{% include "partials/idle_clock.html" %}</td>
+        <td data-label="Status"><span class="pill status-{{ ticket.status }}">{{ ticket.get_status_display }}</span></td>
+        <td data-label="Action">
+          <div class="table-actions">
+            {% if user.is_admin_role and ticket.status == 'pending' %}
+            <form method="post" action="{% url 'ticket_attempt' ticket.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Accept</button>
+            </form>
+            <button type="button" class="btn btn-reject btn-sm" data-reject="{% url 'ticket_reject' ticket.pk %}">Reject</button>
+            {% endif %}
+            <a class="btn btn-ghost btn-sm" href="{% url 'ticket_detail' ticket.pk %}">View</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="empty">No requests match this filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/reject_dialog.html" %}
+{% endblock %}

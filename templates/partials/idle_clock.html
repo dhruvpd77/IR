@@ -1,0 +1,5 @@
+{% if ticket.attempted_at %}
+<span class="clock {% if ticket.idle_is_critical %}clock-hot{% endif %} {% if ticket.status == 'completed' %}clock-done{% endif %}" data-idle data-start="{{ ticket.attempted_at|date:'U' }}" {% if ticket.completed_at %}data-end="{{ ticket.completed_at|date:'U' }}"{% endif %}>{{ ticket.idle_display }}</span>
+{% else %}
+<span class="clock clock-wait">Not started</span>
+{% endif %}

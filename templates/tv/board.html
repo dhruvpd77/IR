@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Live board · IR Maintenance{% endblock %}
+{% block body_class %}board-body{% endblock %}
+{% block body %}
+<div class="board">
+  <header class="board-top">
+    <div class="brand">
+      <div class="brand-mark">IR</div>
+      <div>
+        <strong>INGERSOLL RAND</strong>
+        <span class="live-pill"><span class="live-dot"></span> LIVE BOARD</span>
+      </div>
+    </div>
+    <div class="board-filters">
+      <button type="button" data-board-filter="open" class="{% if board_status == 'open' %}is-on{% endif %}">Open</button>
+      <button type="button" data-board-filter="pending" class="{% if board_status == 'pending' %}is-on{% endif %}">Received</button>
+      <button type="button" data-board-filter="attempted" class="{% if board_status == 'attempted' %}is-on{% endif %}">Accepted</button>
+      <button type="button" data-board-filter="completed" class="{% if board_status == 'completed' %}is-on{% endif %}">Done</button>
+    </div>
+    <div class="board-tools">
+      <div class="live-clock" data-clock></div>
+      <button type="button" class="btn btn-primary" id="go-fullscreen">Full screen</button>
+      <a class="btn btn-ghost" href="{% url 'home' %}">Exit</a>
+    </div>
+  </header>
+  <div class="refresh-bar" aria-hidden="true"><span></span></div>
+  <div id="board-root">
+    {% include "tv/_board_body.html" %}
+  </div>
+  <footer class="board-foot">Idle time starts at accept and freezes when the job is done. Red numbers have been down more than 8 hours.</footer>
+</div>
+{% endblock %}

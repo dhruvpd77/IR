@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Inventory · IR Maintenance{% endblock %}
+{% block eyebrow %}Stores{% endblock %}
+{% block page_title %}Inventory{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-primary" href="{% url 'inventory_create' %}">Add part</a>
+{% endblock %}
+{% block content %}
+<form class="filter-row" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search part, code, or location">
+  {% if low_only %}<input type="hidden" name="low" value="1">{% endif %}
+  <button class="btn btn-dark" type="submit">Search</button>
+  {% if low_only %}
+  <a class="btn btn-ghost" href="{% url 'inventory_list' %}">Show all</a>
+  {% else %}
+  <a class="btn btn-ghost" href="?low=1">Low stock ({{ low_count }})</a>
+  {% endif %}
+</form>
+<div class="panel">
+  <table class="data-table">
+    <thead>
+      <tr><th>Part</th><th>Location</th><th>On hand</th><th>Minimum</th><th>Level</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="{% if item.is_low %}row-low{% endif %}">
+        <td data-label="Part">
+          <a href="{% url 'inventory_detail' item.pk %}">{{ item.name }}</a>
+          <div class="muted">{{ item.sku }}</div>
+        </td>
+        <td data-label="Location">{{ item.location }}</td>
+        <td class="qty" data-label="On hand">{{ item.quantity|intcomma }} <small>{{ item.unit }}</small></td>
+        <td data-label="Minimum">{{ item.min_quantity }}</td>
+        <td data-label="Level">
+          <div class="meter"><span style="width: {{ item.stock_ratio }}%"></span></div>
+          {% if item.is_low %}<span class="pill priority-critical">Low</span>{% else %}<span class="pill status-completed">Healthy</span>{% endif %}
+        </td>
+        <td data-label="Action"><a class="btn btn-ghost" href="{% url 'inventory_detail' item.pk %}">Open</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No parts match this view.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

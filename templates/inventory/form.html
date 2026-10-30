@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Add part · IR Maintenance{% endblock %}
+{% block eyebrow %}Stores{% endblock %}
+{% block page_title %}Add a part{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'inventory_list' %}">Back to inventory</a>
+<form method="post" class="panel js-once">
+  {% csrf_token %}
+  <div class="panel-bd form-grid">
+    <label class="lbl">Part code
+      <input name="sku" required value="{{ form.sku.value|default_if_none:'' }}">
+      {{ form.sku.errors }}
+    </label>
+    <label class="lbl">Name
+      <input name="name" required value="{{ form.name.value|default_if_none:'' }}">
+      {{ form.name.errors }}
+    </label>
+    <label class="lbl wide">Description
+      <textarea name="description">{{ form.description.value|default_if_none:'' }}</textarea>
+    </label>
+    <label class="lbl">Unit
+      <select name="unit">
+        <option value="pcs" {% if form.unit.value|default:"pcs" == "pcs" %}selected{% endif %}>Pieces</option>
+        <option value="set" {% if form.unit.value == "set" %}selected{% endif %}>Set</option>
+        <option value="kit" {% if form.unit.value == "kit" %}selected{% endif %}>Kit</option>
+        <option value="litre" {% if form.unit.value == "litre" %}selected{% endif %}>Litre</option>
+        <option value="metre" {% if form.unit.value == "metre" %}selected{% endif %}>Metre</option>
+      </select>
+    </label>
+    <label class="lbl">Location
+      <input name="location" required value="{{ form.location.value|default_if_none:'' }}">
+      {{ form.location.errors }}
+    </label>
+    <label class="lbl">Opening quantity
+      <input type="number" name="quantity" min="0" required value="{{ form.quantity.value|default_if_none:'0' }}">
+      {{ form.quantity.errors }}
+    </label>
+    <label class="lbl">Minimum
+      <input type="number" name="min_quantity" min="0" required value="{{ form.min_quantity.value|default_if_none:'0' }}">
+      {{ form.min_quantity.errors }}
+    </label>
+    <div class="wide"><button class="btn btn-primary" type="submit">Save part</button></div>
+  </div>
+</form>
+{% endblock %}

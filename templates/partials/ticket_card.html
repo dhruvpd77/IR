@@ -1,0 +1,14 @@
+<a class="job-card status-{{ ticket.status }}" href="{% url 'ticket_detail' ticket.pk %}">
+  <div class="job-card-status">
+    <span>{{ ticket.get_status_display }}</span>
+    {% if ticket.idle_is_critical %}<span>Over 8 hours</span>{% endif %}
+  </div>
+  <p class="place-line"><span>Value stream</span><b>{{ ticket.category.name }}</b></p>
+  <strong>{{ ticket.subcategory.name }}</strong>
+  <p class="place-line"><span>Location</span><b>{{ ticket.asset.location }}</b></p>
+  <p class="job-card-note">{{ ticket.remarks }}</p>
+  <div class="job-card-idle">
+    <span class="idle-label">Idle</span>
+    {% include "partials/idle_clock.html" %}
+  </div>
+</a>

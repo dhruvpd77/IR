@@ -1,0 +1,35 @@
+<section class="board-stats">
+  <article class="stat-pending"><span>Received</span><b>{{ counts.pending }}</b></article>
+  <article class="stat-attempted"><span>Accepted</span><b>{{ counts.attempted }}</b></article>
+  <article class="stat-idle"><span>Machines idle</span><b>{{ counts.machines }}</b></article>
+  <article class="stat-done"><span>Completed today</span><b>{{ counts.completed_today }}</b></article>
+  <article class="stat-stock"><span>Low stock</span><b>{{ counts.low_stock }}</b></article>
+</section>
+<section class="board-grid">
+  {% for ticket in rows %}
+  <a class="board-card status-{{ ticket.status }}" href="{% url 'ticket_detail' ticket.pk %}">
+    <div class="pill-row">
+      <span class="pill status-{{ ticket.status }}"><span class="pill-dot"></span>{{ ticket.get_status_display }}</span>
+      <span class="pill priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+    </div>
+    <div class="board-field">
+      <span>Value stream</span>
+      <b>{{ ticket.category.name }}</b>
+    </div>
+    <div class="board-field board-field-main">
+      <span>Equipment</span>
+      <b>{{ ticket.subcategory.name }}</b>
+    </div>
+    <div class="board-field">
+      <span>Location</span>
+      <b>{{ ticket.asset.location }}</b>
+    </div>
+    <div class="board-clock">
+      <span class="idle-label">Idle time</span>
+      {% include "partials/idle_clock.html" %}
+    </div>
+  </a>
+  {% empty %}
+  <div class="board-empty">No requests in this view.</div>
+  {% endfor %}
+</section>

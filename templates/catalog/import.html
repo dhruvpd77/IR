@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Catalog import · IR Maintenance{% endblock %}
+{% block eyebrow %}Catalog{% endblock %}
+{% block page_title %}Equipment import{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-dark" href="{% url 'category_template' %}">Download Excel template</a>
+{% endblock %}
+{% block content %}
+<section class="help-strip">
+  Upload the plant sheet with columns ValueStream, Equipment Name, and Location. Existing names are kept, and new rows are added. User accounts are not changed.
+</section>
+<form method="post" enctype="multipart/form-data" class="panel js-once">
+  {% csrf_token %}
+  <div class="panel-bd stack">
+    <label class="lbl">Excel or CSV file
+      <input type="file" name="file" accept=".xlsx,.csv" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Upload catalog</button>
+  </div>
+</form>
+<div class="cat-grid">
+  {% for cat in categories %}
+  <article class="choice-card" style="cursor:default">
+    <span class="choice-code">{{ cat.code }}</span>
+    <span class="choice-title">{{ cat.name }}</span>
+    <span class="choice-copy">{{ cat.description }}</span>
+    {% for sub in cat.subcategories.all %}
+    <div class="sub-line">
+      <b>{{ sub.name }}</b>
+      <span>{% for asset in sub.assets.all %}{{ asset.location }}{% if not forloop.last %}, {% endif %}{% empty %}No location yet{% endfor %}</span>
+    </div>
+    {% endfor %}
+  </article>
+  {% empty %}
+  <p class="empty">The catalog is empty. Upload an Excel file to fill it.</p>
+  {% endfor %}
+</div>
+{% endblock %}

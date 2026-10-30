@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}New request · IR Maintenance{% endblock %}
+{% block eyebrow %}New request{% endblock %}
+{% block page_title %}Raise a request{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'ticket_list' %}">← All requests</a>
+<p class="request-lead">Choose the value stream, the equipment, and the location. Then write what you saw and add a photo or video.</p>
+{% if errors %}
+<div class="banner-error">
+  {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+<form id="request-form" class="request-sheet stack" method="post" enctype="multipart/form-data"
+  data-sub-url="{% url 'api_subcategories' pk=0 %}"
+  data-asset-url="{% url 'api_assets' pk=0 %}"
+  data-selected-equipment="{{ selected.subcategory }}"
+  data-selected-location="{{ selected.asset }}">
+  {% csrf_token %}
+  <label class="lbl">Value stream
+    <select name="category" id="field-category" required>
+      <option value="">Select the value stream</option>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if selected.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="lbl">Equipment name
+    <select name="subcategory" id="field-subcategory" required {% if not selected.subcategory %}disabled{% endif %}>
+      <option value="">Select the equipment</option>
+    </select>
+  </label>
+  <label class="lbl">Location
+    <select name="asset" id="field-asset" required {% if not selected.asset %}disabled{% endif %}>
+      <option value="">Select the location</option>
+    </select>
+  </label>
+  <p id="machine-warning" class="banner-warn {% if not asset_open %}hidden{% endif %}">This equipment already has an open request at this location.</p>
+  <div>
+    <p class="lbl">How urgent is it?</p>
+    <div class="prio-row">
+      {% for value, label in priorities %}
+      <label class="prio">
+        <input type="radio" name="priority" value="{{ value }}" {% if selected.priority == value %}checked{% endif %}>
+        <span>{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  <label class="lbl">Remarks
+    <span class="hint">What stopped, what you saw, and whether the equipment is isolated. At least 8 characters.</span>
+    <textarea name="remarks" required minlength="8" placeholder="Example: Forklift will not lift. It is parked and isolated in T30 Assembly.">{{ selected.remarks }}</textarea>
+  </label>
+  <label class="dropzone" id="dropzone">
+    <input class="sr-only" id="media-input" type="file" name="media" accept="image/*,video/*" multiple>
+    <strong>Add photos or a video</strong>
+    <span class="muted">JPG, PNG, WEBP, MP4, WEBM, or MOV. Up to 8 files, 40 MB each.</span>
+  </label>
+  <ul class="file-list" id="file-list"></ul>
+  <button type="submit" class="btn btn-primary" id="wiz-submit">Submit request</button>
+</form>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Analytics · Preventive maintenance{% endblock %}
+{% block eyebrow %}Preventive maintenance{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-ghost" href="{% url 'pm_list' %}?view=all{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}">Back to the list</a>
+{% endblock %}
+{% block content %}
+<form class="pm-period" method="get">
+  <label class="pm-field">Month
+    <select name="month" onchange="this.form.week.value=''; this.form.stream.value=''; this.form.vendor.value=''; this.form.submit();">
+      <option value="">All months</option>
+      {% for name in months %}
+      <option value="{{ name }}" {% if month == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Week
+    <select name="week" onchange="this.form.submit();">
+      <option value="">All weeks</option>
+      {% for item in weeks %}
+      <option value="{{ item.key }}" {% if week == item.key %}selected{% endif %}>{{ item.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Value stream
+    <select name="stream" onchange="this.form.submit();">
+      <option value="">All value streams</option>
+      {% for name in stream_names %}
+      <option value="{{ name }}" {% if stream == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="pm-field">Vendor
+    <select name="vendor" onchange="this.form.submit();">
+      <option value="">All vendors</option>
+      {% for name in vendor_names %}
+      <option value="{{ name }}" {% if vendor == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<p class="pm-scope">
+  {% if month %}{{ month }}{% else %}All months{% endif %}
+  {% if week_label %} · {{ week_label }}{% endif %}
+  {% if stream %} · {{ stream }}{% endif %}
+  {% if vendor %} · {{ vendor }}{% endif %}
+  · {{ counts.all }} visits
+</p>
+
+<div class="pm-kpis pm-kpis-3">
+  <div class="desk-kpi hot">
+    <span>Overdue</span>
+    <b>{{ counts.overdue }}</b>
+    <small>{{ counts.overdue_pct|floatformat:1 }}% of this selection</small>
+  </div>
+  <div class="desk-kpi done">
+    <span>Completed</span>
+    <b>{{ counts.completed }}</b>
+    <small>{{ counts.rate|floatformat:1 }}% of this selection</small>
+  </div>
+  <div class="desk-kpi idle">
+    <span>Completion</span>
+    <b>{{ counts.rate|floatformat:1 }}%</b>
+    <small>{{ counts.completed }} completed · {{ counts.overdue }} overdue</small>
+  </div>
+</div>
+
+<section class="pm-stream">
+  <h2>By value stream</h2>
+  <div class="table-wrap">
+    <table class="pm-ana">
+      <thead>
+        <tr>
+          <th>Value stream</th>
+          <th class="num">Overdue</th>
+          <th class="num">Overdue %</th>
+          <th class="num">Completed</th>
+          <th class="num">Completed %</th>
+          <th class="num">Total</th>
+          <th>Done</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in streams %}
+        <tr>
+          <td data-label="Value stream"><b>{{ row.value_stream }}</b></td>
+          <td class="num {% if row.overdue %}hot{% endif %}" data-label="Overdue">{{ row.overdue }}</td>
+          <td class="num {% if row.overdue %}hot{% endif %}" data-label="Overdue %">{{ row.overdue_pct|floatformat:1 }}%</td>
+          <td class="num done" data-label="Completed">{{ row.completed }}</td>
+          <td class="num done" data-label="Completed %">{{ row.done_pct|floatformat:1 }}%</td>
+          <td class="num" data-label="Total">{{ row.total }}</td>
+          <td class="pm-pct" data-label="Done"><span class="pm-track"><i style="width: {{ row.done_pct }}%"></i></span>{{ row.done_pct|floatformat:1 }}%</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No visits in this month or week.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="pm-stream">
+  <h2>By vendor</h2>
+  <div class="table-wrap">
+    <table class="pm-ana">
+      <thead>
+        <tr>
+          <th>Vendor</th>
+          <th class="num">Overdue</th>
+          <th class="num">Overdue %</th>
+          <th class="num">Completed</th>
+          <th class="num">Completed %</th>
+          <th class="num">Total</th>
+          <th>Done</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in vendors %}
+        <tr>
+          <td data-label="Vendor"><b>{{ row.vendor_name }}</b></td>
+          <td class="num {% if row.overdue %}hot{% endif %}" data-label="Overdue">{{ row.overdue }}</td>
+          <td class="num {% if row.overdue %}hot{% endif %}" data-label="Overdue %">{{ row.overdue_pct|floatformat:1 }}%</td>
+          <td class="num done" data-label="Completed">{{ row.completed }}</td>
+          <td class="num done" data-label="Completed %">{{ row.done_pct|floatformat:1 }}%</td>
+          <td class="num" data-label="Total">{{ row.total }}</td>
+          <td class="pm-pct" data-label="Done"><span class="pm-track"><i style="width: {{ row.done_pct }}%"></i></span>{{ row.done_pct|floatformat:1 }}%</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No external vendor in this month or week.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

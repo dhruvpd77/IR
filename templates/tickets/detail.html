@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.ticket_no }} · IR Maintenance{% endblock %}
+{% block eyebrow %}{{ ticket.ticket_no }}{% endblock %}
+{% block page_title %}{{ ticket.subcategory.name }}{% endblock %}
+{% block page_actions %}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'ticket_list' %}">← All requests</a>
+
+<section class="idle-line status-{{ ticket.status }} {% if ticket.idle_is_critical %}is-hot{% endif %}">
+  <div>
+    <div class="head-pills">
+      <span class="pill status-{{ ticket.status }}"><span class="pill-dot"></span>{{ ticket.get_status_display }}</span>
+      <span class="pill priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+    </div>
+    <p>Raised by {{ ticket.raised_by.get_full_name|default:ticket.raised_by.username }} · {{ ticket.created_at|date:"d M Y, H:i" }}</p>
+  </div>
+  <div class="idle-side">
+    {% include "partials/idle_clock.html" %}
+    {% if ticket.completed_at %}
+    <p>Done {{ ticket.completed_at|date:"d M, H:i" }}. Clock is frozen.</p>
+    {% elif ticket.attempted_at %}
+    <p>Started when accepted {{ ticket.attempted_at|date:"d M, H:i" }}</p>
+    {% elif ticket.rejected_at %}
+    <p>Rejected before it was accepted</p>
+    {% else %}
+    <p>Starts when an admin accepts this request</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="place-grid">
+  <div>
+    <span>Value stream</span>
+    <b>{{ ticket.category.name }}</b>
+  </div>
+  <div>
+    <span>Equipment name</span>
+    <b>{{ ticket.subcategory.name }}</b>
+  </div>
+  <div>
+    <span>Location</span>
+    <b>{{ ticket.asset.location }}</b>
+  </div>
+</section>
+
+{% if ticket.status == 'completed' %}
+<section class="done-card">
+  <div>
+    <span class="done-kicker">Completed</span>
+    <h2>Back in service</h2>
+    <p>{% if ticket.completed_by %}Closed by {{ ticket.completed_by.get_full_name|default:ticket.completed_by.username }} · {% endif %}{{ ticket.completed_at|date:"d M Y, H:i" }}</p>
+    {% if ticket.completion_notes %}<p class="done-note">{{ ticket.completion_notes }}</p>{% endif %}
+  </div>
+  <div class="done-idle">
+    <span>Idle time</span>
+    <b>{{ ticket.idle_display }}</b>
+    <span>Frozen when marked done</span>
+  </div>
+</section>
+{% elif ticket.status == 'rejected' %}
+<div class="reject-band">Rejected{% if ticket.rejected_by %} by {{ ticket.rejected_by.get_full_name|default:ticket.rejected_by.username }}{% endif %}. {{ ticket.reject_reason }}</div>
+{% endif %}
+
+<div class="view-stack">
+  <article class="view-card view-problem">
+    <h2>Problem</h2>
+    <div class="view-body">
+    <div class="problem-row">
+      <p class="job-remarks">{{ ticket.remarks }}</p>
+      {% if ticket.media.all %}
+      <div class="job-photos">
+        {% for media in ticket.media.all %}
+          {% if media.is_video %}
+          <video controls preload="metadata" src="{{ media.file.url }}"></video>
+          {% else %}
+          <button type="button" class="gallery-btn" data-lightbox="{{ media.file.url }}">
+            <img src="{{ media.file.url }}" alt="Photo on {{ ticket.ticket_no }}">
+          </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    </div>
+  </article>
+
+  <article class="view-card view-parts">
+    <h2>Parts used</h2>
+    <div class="view-body">
+    {% for move in ticket.movements.all %}
+    <div class="part-line">
+      <div>
+        <b>{{ move.item.name }}</b>
+        <span>{{ move.item.sku }}{% if move.created_by %} · {{ move.created_by.get_full_name|default:move.created_by.username }}{% endif %} · {{ move.created_at|date:"d M, H:i" }}</span>
+      </div>
+      <strong>{{ move.used_quantity }} {{ move.item.unit }}</strong>
+    </div>
+    {% empty %}
+    <p class="muted">No parts used yet.</p>
+    {% endfor %}
+    {% if user.is_admin_role and ticket.status == 'attempted' %}
+    <form method="post" action="{% url 'ticket_add_part' ticket.pk %}" class="part-add js-once">
+      {% csrf_token %}
+      <label class="lbl">Part
+        <select name="item" required>
+          <option value="">Select part</option>
+          {% for item in parts %}
+          <option value="{{ item.pk }}" {% if item.quantity == 0 %}disabled{% endif %}>{{ item.name }} — {{ item.quantity }} {{ item.unit }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="lbl">Qty
+        <input type="number" name="quantity" min="1" value="1" required>
+      </label>
+      <label class="lbl">Note
+        <input type="text" name="note" placeholder="Optional">
+      </label>
+      <button class="btn btn-dark" type="submit">Add part</button>
+    </form>
+    {% endif %}
+    </div>
+  </article>
+
+  {% if user.is_admin_role and ticket.status == 'pending' %}
+  <article class="view-card view-decision">
+    <h2>Decision</h2>
+    <div class="view-body">
+    <div class="table-actions">
+      <form method="post" action="{% url 'ticket_attempt' ticket.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Accept</button>
+      </form>
+      <button type="button" class="btn btn-reject" data-reject="{% url 'ticket_reject' ticket.pk %}">Reject</button>
+    </div>
+    <p class="muted">Accept starts the idle clock. Reject closes the request with no idle time.</p>
+    </div>
+  </article>
+  {% elif user.is_admin_role and ticket.status == 'attempted' %}
+  <article class="view-card view-notes">
+    <h2>Work notes</h2>
+    <div class="view-body">
+    <form method="post" action="{% url 'ticket_notes' ticket.pk %}" class="stack js-once">
+      {% csrf_token %}
+      <label class="lbl">What did you find, and how long has the work taken?
+        <textarea name="attempt_notes" placeholder="Example: On the machine at 14:20. Seal face is scored. Waiting on a spare.">{{ ticket.attempt_notes }}</textarea>
+      </label>
+      <button class="btn btn-dark" type="submit">Save notes</button>
+    </form>
+    </div>
+  </article>
+  <article class="view-card view-done">
+    <h2>Mark done</h2>
+    <div class="view-body">
+    <form method="post" action="{% url 'ticket_complete' ticket.pk %}" class="job-do js-once">
+      {% csrf_token %}
+      <label class="lbl">Closing note
+        <textarea name="completion_notes" required minlength="5" placeholder="What was fixed, and that the machine is running again."></textarea>
+      </label>
+      <button class="btn btn-primary" type="submit">Mark done</button>
+    </form>
+    </div>
+  </article>
+  {% elif ticket.status == 'pending' %}
+  <article class="view-card view-decision">
+    <h2>Status</h2>
+    <div class="view-body">
+    <p class="job-wait">Waiting for an admin to accept or reject this request.</p>
+    </div>
+  </article>
+  {% endif %}
+
+  <article class="view-card view-history">
+    <h2>History</h2>
+    <div class="view-body">
+    <div class="history-layout">
+      <div class="history">
+        <div>
+          <span class="idle-label">Raised</span>
+          <b>{{ ticket.raised_by.get_full_name|default:ticket.raised_by.username }}</b>
+          <span>{{ ticket.created_at|date:"d M Y, H:i" }}</span>
+        </div>
+        <div>
+          <span class="idle-label">Accepted</span>
+          {% if ticket.attempted_at %}
+          <b>{{ ticket.attempted_by.get_full_name|default:ticket.attempted_by.username }}</b>
+          <span>{{ ticket.attempted_at|date:"d M Y, H:i" }}{% if ticket.response_display %} · {{ ticket.response_display }}{% endif %}</span>
+          {% else %}
+          <b>—</b>
+          <span>Not accepted yet</span>
+          {% endif %}
+        </div>
+        <div>
+          <span class="idle-label">Done</span>
+          {% if ticket.completed_at %}
+          <b>{{ ticket.completed_by.get_full_name|default:ticket.completed_by.username }}</b>
+          <span>{{ ticket.completed_at|date:"d M Y, H:i" }}{% if ticket.repair_display %} · {{ ticket.repair_display }}{% endif %}</span>
+          {% else %}
+          <b>—</b>
+          <span>Not done yet</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="note-col">
+        {% if ticket.attempt_notes %}
+        <div class="note-box">
+          <span class="idle-label">Work notes</span>
+          <p>{{ ticket.attempt_notes }}</p>
+        </div>
+        {% endif %}
+        {% if ticket.completion_notes %}
+        <div class="note-box">
+          <span class="idle-label">Closing note</span>
+          <p>{{ ticket.completion_notes }}</p>
+        </div>
+        {% endif %}
+        {% if ticket.reject_reason %}
+        <div class="note-box note-box-reject">
+          <span class="idle-label">Reject reason</span>
+          <p>{{ ticket.reject_reason }}</p>
+        </div>
+        {% endif %}
+        {% if not ticket.attempt_notes and not ticket.completion_notes and not ticket.reject_reason %}
+        <div class="note-box">
+          <span class="idle-label">Notes</span>
+          <p>No notes added yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    </div>
+  </article>
+</div>
+{% include "partials/reject_dialog.html" %}
+
+<div id="lightbox" class="lightbox" hidden>
+  <button type="button" class="lightbox-close btn btn-ghost light" data-lightbox-close>Close</button>
+  <img alt="Enlarged photo">
+</div>
+{% endblock %}

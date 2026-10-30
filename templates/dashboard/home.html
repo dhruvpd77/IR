@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · IR Maintenance{% endblock %}
+{% block eyebrow %}Ingersoll Rand{% endblock %}
+{% block page_title %}Maintenance desk{% endblock %}
+{% block page_actions %}
+  {% if user.is_admin_role %}
+  <a class="btn btn-ghost" href="{% url 'tv_board' %}">Live board</a>
+  {% endif %}
+  <a class="btn btn-primary" href="{% url 'ticket_create' %}">New request</a>
+{% endblock %}
+{% block content %}
+<p class="request-lead">Idle time starts when an admin accepts the request, and it freezes when the job is marked done.</p>
+
+<section class="desk-kpis">
+  <a class="desk-kpi pending" href="{% url 'ticket_list' %}?status=pending">
+    <span>Received</span>
+    <b>{{ counts.pending }}</b>
+    <small>Waiting to start</small>
+  </a>
+  <a class="desk-kpi attempted" href="{% url 'ticket_list' %}?status=attempted">
+    <span>Accepted</span>
+    <b>{{ counts.attempted }}</b>
+    <small>Work in progress</small>
+  </a>
+  <a class="desk-kpi idle" href="{% url 'ticket_list' %}?status=attempted">
+    <span>Machines idle</span>
+    <b>{{ machines_down }}</b>
+    <small>Clock running</small>
+  </a>
+  <a class="desk-kpi done" href="{% url 'ticket_list' %}?status=completed">
+    <span>Completed today</span>
+    <b>{{ completed_today }}</b>
+    <small>Average idle {{ avg_idle }}</small>
+  </a>
+</section>
+
+<article class="sheet">
+  <div class="sheet-hd">
+    <h2>Open jobs</h2>
+    <a href="{% url 'ticket_list' %}">View all</a>
+  </div>
+  <div class="card-grid card-grid-3">
+    {% for ticket in open_tickets %}
+      {% include "partials/ticket_card.html" %}
+    {% empty %}
+    <p class="empty">No machine is waiting.</p>
+    {% endfor %}
+  </div>
+</article>
+
+<section class="desk-side">
+    {% if not user.is_admin_role %}
+    <a class="desk-cta" href="{% url 'ticket_create' %}">
+      <strong>Raise a request</strong>
+      <span>Choose the value stream, equipment, and location, then add a photo.</span>
+    </a>
+    {% endif %}
+    <article class="view-card view-problem">
+      <h2>By value stream</h2>
+      <div class="view-body stream-list">
+        {% for bar in bars %}
+        <a class="stream-row" href="{% url 'ticket_list' %}?category={{ bar.id }}">
+          <span>{{ bar.name }}</span>
+          <div class="stream-track" aria-hidden="true"><span style="width: {{ bar.pct }}%"></span></div>
+          <b>{{ bar.count }}</b>
+        </a>
+        {% empty %}
+        <p class="empty">No requests yet.</p>
+        {% endfor %}
+      </div>
+    </article>
+    {% if user.is_admin_role %}
+    <article class="view-card view-decision">
+      <h2>Low stock</h2>
+      <div class="view-body stream-list">
+        {% for item in low_items %}
+        <a class="stock-row" href="{% url 'inventory_detail' item.pk %}">
+          <div>
+            <b>{{ item.name }}</b>
+            <span>{{ item.sku }} · minimum {{ item.min_quantity }} {{ item.unit }}</span>
+          </div>
+          <strong>{{ item.quantity }} {{ item.unit }}</strong>
+        </a>
+        {% empty %}
+        <div class="stock-ok">
+          <b>All parts are above the minimum</b>
+          <a href="{% url 'inventory_list' %}">Open inventory</a>
+        </div>
+        {% endfor %}
+        {% if low_items %}
+        <a class="stock-more" href="{% url 'inventory_list' %}?low=1">Open low stock</a>
+        {% endif %}
+      </div>
+    </article>
+    {% endif %}
+    {% if people %}
+    <article class="sheet">
+      <div class="sheet-hd">
+        <h2>People</h2>
+        <a href="{% url 'user_create' %}">Add user</a>
+      </div>
+      <div class="plain-row">
+        <span>Admins</span>
+        <b>{{ people.admin }}</b>
+      </div>
+      <div class="plain-row">
+        <span>Employees</span>
+        <b>{{ people.employee }}</b>
+      </div>
+    </article>
+    {% endif %}
+</section>
+
+<article class="sheet">
+  <div class="sheet-hd">
+    <h2>Recently completed</h2>
+    <a href="{% url 'ticket_list' %}?status=completed">Completed</a>
+  </div>
+  <div class="card-grid">
+    {% for ticket in recent_completed %}
+      {% include "partials/ticket_card.html" %}
+    {% empty %}
+    <p class="empty">Completed jobs will show a frozen idle time.</p>
+    {% endfor %}
+  </div>
+</article>
+{% endblock %}

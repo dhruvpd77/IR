@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IR Maintenance{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="{% static 'vendor/tailwind.js' %}"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { navy: '#0B1F3A', crimson: '#C8102E', canvas: '#F4F6F9', ink: '#142033' },
+          fontFamily: {
+            sans: ['Barlow', 'Segoe UI', 'sans-serif'],
+            display: ['Barlow Condensed', 'Barlow', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% include "partials/icons.html" %}
+  {% block body %}
+  {% if user.is_authenticated %}
+  <button type="button" class="nav-backdrop" id="nav-backdrop" aria-label="Close menu"></button>
+  {% endif %}
+  <div class="app-shell">
+    {% if user.is_authenticated %}
+    {% with name=request.resolver_match.url_name %}
+    <aside class="sidebar">
+      <a class="brand" href="{% url 'home' %}">
+        <div class="brand-mark">IR</div>
+        <div>
+          <strong>INGERSOLL RAND</strong>
+          <small>Plant maintenance</small>
+        </div>
+      </a>
+      <div class="sample-chip">Sample data</div>
+      <nav class="nav-list">
+        <a class="nav-link {% if name == 'home' %}is-active{% endif %}" href="{% url 'home' %}"><svg class="icon"><use href="#i-grid"></use></svg>Dashboard</a>
+        <a class="nav-link {% if name == 'ticket_list' or name == 'ticket_detail' %}is-active{% endif %}" href="{% url 'ticket_list' %}"><svg class="icon"><use href="#i-list"></use></svg>Requests{% if nav_open_count %}<span class="nav-badge">{{ nav_open_count }}</span>{% endif %}</a>
+        <a class="nav-link {% if name == 'ticket_create' %}is-active{% endif %}" href="{% url 'ticket_create' %}"><svg class="icon"><use href="#i-plus"></use></svg>New request</a>
+        {% if user.is_admin_role %}
+        <a class="nav-link {% if name == 'inventory_list' or name == 'inventory_detail' or name == 'inventory_create' %}is-active{% endif %}" href="{% url 'inventory_list' %}"><svg class="icon"><use href="#i-box"></use></svg>Inventory{% if nav_low_stock %}<span class="nav-badge amber">{{ nav_low_stock }}</span>{% endif %}</a>
+        <a class="nav-link {% if name == 'pm_list' or name == 'pm_detail' or name == 'pm_analytics' %}is-active{% endif %}" href="{% url 'pm_list' %}"><svg class="icon"><use href="#i-calendar"></use></svg>Preventive maintenance{% if nav_pm_due %}<span class="nav-badge amber">{{ nav_pm_due }}</span>{% endif %}</a>
+        <a class="nav-link {% if name == 'tv_board' %}is-active{% endif %}" href="{% url 'tv_board' %}"><svg class="icon"><use href="#i-screen"></use></svg>Live board</a>
+        {% endif %}
+        {% if user.is_superadmin %}
+        <a class="nav-link {% if name == 'user_list' or name == 'user_create' or name == 'user_password' %}is-active{% endif %}" href="{% url 'user_list' %}"><svg class="icon"><use href="#i-users"></use></svg>People</a>
+        <a class="nav-link {% if name == 'import_categories' %}is-active{% endif %}" href="{% url 'import_categories' %}"><svg class="icon"><use href="#i-upload"></use></svg>Catalog import</a>
+        {% endif %}
+      </nav>
+      <div class="sidebar-user">
+        <div class="avatar">{{ user.first_name|first|default:user.username|first }}</div>
+        <div>
+          <strong>{{ user.get_full_name|default:user.username }}</strong>
+          <span>{{ user.get_role_display }}</span>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" aria-label="Sign out"><svg class="icon"><use href="#i-out"></use></svg></button>
+        </form>
+      </div>
+    </aside>
+    {% endwith %}
+    {% endif %}
+    <div class="main-col">
+      {% if user.is_authenticated %}
+      <header class="topbar">
+        <div>
+          <button type="button" class="nav-toggle btn btn-ghost" id="nav-toggle">Menu</button>
+          <p class="eyebrow">{% block eyebrow %}Operations{% endblock %}</p>
+          <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="live-clock" data-clock></div>
+          {% block page_actions %}{% endblock %}
+        </div>
+      </header>
+      {% endif %}
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% endblock %}
+  {% include "partials/toasts.html" %}
+  <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
