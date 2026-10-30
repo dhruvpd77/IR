@@ -1,11 +1,12 @@
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# PythonAnywhere sets PYTHONANYWHERE_DOMAIN (for example yourname.pythonanywhere.com).
+# A virtualenv on PythonAnywhere lives under /home/<username>/.
 PA_DOMAIN = os.environ.get('PYTHONANYWHERE_DOMAIN', '').strip()
-ON_PYTHONANYWHERE = bool(PA_DOMAIN)
+ON_PYTHONANYWHERE = bool(PA_DOMAIN) or sys.prefix.startswith('/home/')
 
 
 def _env_flag(name, default):
@@ -25,7 +26,7 @@ DEBUG = _env_flag('DJANGO_DEBUG', default=not ON_PYTHONANYWHERE)
 if os.environ.get('ALLOWED_HOSTS'):
     ALLOWED_HOSTS = [host.strip() for host in os.environ['ALLOWED_HOSTS'].split(',') if host.strip()]
 elif ON_PYTHONANYWHERE:
-    ALLOWED_HOSTS = [PA_DOMAIN, '.pythonanywhere.com']
+    ALLOWED_HOSTS = [host for host in (PA_DOMAIN, '.pythonanywhere.com') if host]
 else:
     ALLOWED_HOSTS = ['*']
 
@@ -34,7 +35,9 @@ if os.environ.get('CSRF_TRUSTED_ORIGINS'):
         origin.strip() for origin in os.environ['CSRF_TRUSTED_ORIGINS'].split(',') if origin.strip()
     ]
 elif ON_PYTHONANYWHERE:
-    CSRF_TRUSTED_ORIGINS = [f'https://{PA_DOMAIN}']
+    CSRF_TRUSTED_ORIGINS = ['https://*.pythonanywhere.com']
+    if PA_DOMAIN:
+        CSRF_TRUSTED_ORIGINS.insert(0, f'https://{PA_DOMAIN}')
 
 if ON_PYTHONANYWHERE:
     # The site is HTTPS at the browser; PythonAnywhere talks to Django over HTTP.
@@ -53,9 +56,18 @@ INSTALLED_APPS = [
     'maintenance.apps.MaintenanceConfig',
 ]
 
+try:
+    import whitenoise  # noqa: F401
+    _USE_WHITENOISE = True
+except ImportError:
+    _USE_WHITENOISE = False
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
+if _USE_WHITENOISE:
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
+MIDDLEWARE += [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
