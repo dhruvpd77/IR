@@ -66,18 +66,8 @@ INSTALLED_APPS = [
     'maintenance.apps.MaintenanceConfig',
 ]
 
-try:
-    import whitenoise  # noqa: F401
-    _USE_WHITENOISE = True
-except ImportError:
-    _USE_WHITENOISE = False
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-]
-if _USE_WHITENOISE:
-    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
-MIDDLEWARE += [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -132,7 +122,9 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
+# /assets/ is served from the project static folder. PythonAnywhere's
+# /static/ mapping keeps the old collected CSS, so the pages do not use it.
+STATIC_URL = '/assets/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'

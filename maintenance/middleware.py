@@ -9,7 +9,7 @@ class ActiveUserMiddleware:
 
     def __call__(self, request):
         path = request.path
-        if path.startswith('/static/') or path.startswith('/media/'):
+        if path.startswith('/assets/') or path.startswith('/static/') or path.startswith('/media/'):
             return self.get_response(request)
         user = getattr(request, 'user', None)
         if user is not None and user.is_authenticated and not user.is_active:
