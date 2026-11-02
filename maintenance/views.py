@@ -2,7 +2,6 @@ import csv
 from datetime import datetime, timedelta
 from io import TextIOWrapper
 
-from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -69,7 +68,7 @@ def login_view(request):
     elif request.method == 'POST':
         fails = cache.get(_login_block_key(request), 0) + 1
         cache.set(_login_block_key(request), fails, 15 * 60)
-    return render(request, 'auth/login.html', {'form': form, 'show_demo': settings.DEBUG})
+    return render(request, 'auth/login.html', {'form': form})
 
 
 @require_POST
