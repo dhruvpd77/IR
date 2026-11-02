@@ -52,15 +52,15 @@
       {% else %}
       <h2>Complete maintenance</h2>
       <p>Choose the date this visit was finished. A note is optional. The next one is planned {{ task.frequency_label|lower }} after that date.</p>
-      <form method="post" action="{% url 'pm_complete' task.pk %}">
+      <form method="post" class="ask-form" action="{% url 'pm_complete' task.pk %}">
         {% csrf_token %}
-        <label>Date completed
+        <label class="lbl">Date completed
           <input type="date" name="completed_on" required value="{{ today }}" max="{{ today }}">
         </label>
-        <label>Notes <span class="muted">optional</span>
+        <label class="lbl">Notes <span class="muted">optional</span>
           <textarea name="completion_notes" placeholder="Example: Oil checked. No leak. Returned to service."></textarea>
         </label>
-        <button class="btn btn-primary" type="submit">Complete maintenance</button>
+        <button class="btn btn-primary ask-send" type="submit">Complete maintenance</button>
       </form>
       {% endif %}
     </aside>

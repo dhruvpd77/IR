@@ -2,12 +2,14 @@ import csv
 from datetime import datetime, timedelta
 from io import TextIOWrapper
 
+from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from django.db.models import Case, Count, F, IntegerField, Prefetch, Q, Value, When
+from django.db.models import Case, Count, F, IntegerField, Max, Min, Prefetch, Q, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -42,14 +44,32 @@ def _safe_next(request):
     return ''
 
 
+def _client_ip(request):
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
+def _login_block_key(request):
+    return f'login-fail:{_client_ip(request)}'
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('home')
+    blocked = cache.get(_login_block_key(request), 0) >= 8
     form = AuthenticationForm(request, data=request.POST or None)
-    if request.method == 'POST' and form.is_valid():
+    if blocked:
+        form.add_error(None, 'Too many sign-in attempts. Wait 15 minutes and try again.')
+    elif request.method == 'POST' and form.is_valid():
+        cache.delete(_login_block_key(request))
         login(request, form.get_user())
         return redirect(_safe_next(request) or 'home')
-    return render(request, 'auth/login.html', {'form': form})
+    elif request.method == 'POST':
+        fails = cache.get(_login_block_key(request), 0) + 1
+        cache.set(_login_block_key(request), fails, 15 * 60)
+    return render(request, 'auth/login.html', {'form': form, 'show_demo': settings.DEBUG})
 
 
 @require_POST
@@ -694,23 +714,35 @@ def _month_span(label):
 
 
 def _week_choices(qs, span=None):
+    """Every week in the plan, including weeks and days with no visit."""
     if span:
-        qs = qs.filter(plan_date__gte=span[0], plan_date__lte=span[1])
+        start, end = span
+    else:
+        bounds = qs.aggregate(first=Min('plan_date'), last=Max('plan_date'))
+        first, last = bounds['first'], bounds['last']
+        if not first or not last:
+            return []
+        start = first.replace(month=1, day=1)
+        end = last
+    if end < start:
+        return []
     found = {}
-    for plan in qs.order_by('plan_date').values_list('plan_date', flat=True).distinct():
-        iso = plan.isocalendar()
-        key = f'{iso.year}-W{iso.week:02d}'
-        if key in found:
-            continue
-        monday = plan - timedelta(days=plan.weekday())
+    monday = start - timedelta(days=start.weekday())
+    last_monday = end - timedelta(days=end.weekday())
+    while monday <= last_monday:
         sunday = monday + timedelta(days=6)
-        show_start = max(monday, span[0]) if span else monday
-        show_end = min(sunday, span[1]) if span else sunday
+        show_start = max(monday, start)
+        show_end = min(sunday, end)
+        iso = monday.isocalendar()
+        key = f'{iso.year}-W{iso.week:02d}'
         found[key] = {
             'key': key,
             'label': f'Week {iso.week} · {show_start:%d %b %Y} – {show_end:%d %b %Y}',
             'start': monday,
+            'show_start': show_start,
+            'show_end': show_end,
         }
+        monday += timedelta(days=7)
     return sorted(found.values(), key=lambda item: item['start'])
 
 
@@ -721,13 +753,14 @@ def _apply_period(qs, month, week, stream='', vendor=''):
     scoped = qs.filter(schedule_month=month) if month else qs
     span = _month_span(month) if month else None
     weeks = _week_choices(scoped, span)
-    if week not in {item['key'] for item in weeks}:
+    chosen_week = next((item for item in weeks if item['key'] == week), None)
+    if chosen_week is None:
         week = ''
-    if week:
-        year_text, week_text = week.split('-W')
-        scoped = scoped.filter(plan_date__iso_year=int(year_text), plan_date__week=int(week_text))
-        if span:
-            scoped = scoped.filter(plan_date__gte=span[0], plan_date__lte=span[1])
+    elif chosen_week:
+        scoped = scoped.filter(
+            plan_date__gte=chosen_week['show_start'],
+            plan_date__lte=chosen_week['show_end'],
+        )
     stream_names = sorted({name for name in scoped.values_list('value_stream', flat=True) if name})
     if stream not in stream_names:
         stream = ''
@@ -805,16 +838,6 @@ def pm_list(request):
     )
     counts, _streams, _vendors, overdue_q, due_q, upcoming_q, done_q = _pm_analytics(scoped, today, soon)
     tasks = scoped
-    if view == 'overdue':
-        tasks = tasks.filter(overdue_q).order_by('plan_date', 'equipment_name')
-    elif view == 'due':
-        tasks = tasks.filter(due_q).order_by('plan_date', 'equipment_name')
-    elif view == 'reminder':
-        tasks = tasks.filter(completed_on__isnull=True, plan_date__lte=soon).order_by('-plan_date', 'equipment_name')
-    elif view == 'upcoming':
-        tasks = tasks.filter(upcoming_q).order_by('plan_date', 'equipment_name')
-    elif view == 'completed':
-        tasks = tasks.filter(done_q).order_by('-completed_on', 'equipment_name')
     if q:
         tasks = tasks.filter(
             Q(value_stream__icontains=q)
@@ -823,12 +846,40 @@ def pm_list(request):
             | Q(asset_name__icontains=q)
             | Q(asset_number__icontains=q)
         )
-    if view == 'all':
+    chosen_week = next((item for item in weeks if item['key'] == week), None)
+    day_groups = []
+    if chosen_week:
         tasks = tasks.order_by('plan_date', 'equipment_name')
-    page = Paginator(tasks, 30).get_page(request.GET.get('page'))
+    else:
+        if view == 'overdue':
+            tasks = tasks.filter(overdue_q).order_by('plan_date', 'equipment_name')
+        elif view == 'due':
+            tasks = tasks.filter(due_q).order_by('plan_date', 'equipment_name')
+        elif view == 'reminder':
+            tasks = tasks.filter(completed_on__isnull=True, plan_date__lte=soon).order_by('-plan_date', 'equipment_name')
+        elif view == 'upcoming':
+            tasks = tasks.filter(upcoming_q).order_by('plan_date', 'equipment_name')
+        elif view == 'completed':
+            tasks = tasks.filter(done_q).order_by('-completed_on', 'equipment_name')
+        else:
+            tasks = tasks.order_by('plan_date', 'equipment_name')
+    if chosen_week:
+        grouped = {}
+        for task in tasks:
+            grouped.setdefault(task.plan_date, []).append(task)
+        cursor = chosen_week['show_start']
+        while cursor <= chosen_week['show_end']:
+            day_groups.append({'date': cursor, 'tasks': grouped.get(cursor, [])})
+            cursor += timedelta(days=1)
+        page = None
+        listed = []
+    else:
+        page = Paginator(tasks, 30).get_page(request.GET.get('page'))
+        listed = page.object_list
     return render(request, 'pm/list.html', {
         'page': page,
-        'tasks': page.object_list,
+        'tasks': listed,
+        'day_groups': day_groups,
         'counts': counts,
         'view': view,
         'q': q,

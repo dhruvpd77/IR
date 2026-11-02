@@ -11,7 +11,33 @@
   <input type="search" name="q" value="{{ q }}" placeholder="Search name, ID, code, or department">
   <button class="btn btn-dark" type="submit">Search</button>
 </form>
-<div class="panel">
+<div class="phone-jobs">
+  {% for person in people %}
+  <article class="phone-job">
+    <div class="phone-job-main">
+      <div class="phone-job-top">
+        <span class="pill {% if person.role == 'superadmin' %}status-rejected{% elif person.role == 'admin' %}status-attempted{% else %}status-completed{% endif %}">{{ person.get_role_display }}</span>
+        {% if person.is_active %}<span class="pill status-completed">Active</span>{% else %}<span class="pill status-pending">Inactive</span>{% endif %}
+      </div>
+      <h2>{{ person.get_full_name|default:person.username }}</h2>
+      <p class="phone-job-place">{{ person.username }}</p>
+      <p class="muted">{{ person.department|default:"No department" }}{% if person.employee_code %} · {{ person.employee_code }}{% endif %}</p>
+    </div>
+    <div class="phone-job-actions">
+      <a class="btn btn-primary" href="{% url 'user_password' person.pk %}">Password</a>
+      {% if person.pk != user.pk %}
+      <form method="post" action="{% url 'user_toggle' person.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">{% if person.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty">No people match this search.</p>
+  {% endfor %}
+</div>
+<div class="panel desk-only">
   <table class="data-table">
     <thead><tr><th>Person</th><th>Sign-in ID</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr></thead>
     <tbody>

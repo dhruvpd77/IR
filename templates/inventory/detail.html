@@ -13,15 +13,15 @@
       <div class="giant">{{ item.quantity|intcomma }} <small>{{ item.unit }}</small></div>
       <p>Minimum {{ item.min_quantity }} {{ item.unit }} · {{ item.location }}</p>
       {% if item.description %}<p class="muted" style="margin-top:.6rem">{{ item.description }}</p>{% endif %}
-      <form method="post" class="stack js-once" style="margin-top:1.2rem">
+      <form method="post" class="ask-form js-once">
         {% csrf_token %}
-        <div class="prio-row">
+        <div class="prio-row ask-prio">
           <label class="prio"><input type="radio" name="direction" value="receive" checked><span>Receive</span></label>
           <label class="prio"><input type="radio" name="direction" value="issue"><span>Remove</span></label>
         </div>
         <label class="lbl">Quantity<input type="number" name="quantity" min="1" value="1" required></label>
         <label class="lbl">Note<input type="text" name="note" placeholder="Delivery note or reason"></label>
-        <button class="btn btn-primary" type="submit">Update stock</button>
+        <button class="btn btn-primary ask-send" type="submit">Update stock</button>
       </form>
     </div>
   </article>

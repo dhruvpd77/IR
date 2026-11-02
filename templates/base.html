@@ -3,7 +3,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#143C3C">
   <title>{% block title %}IR Maintenance{% endblock %}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +24,7 @@
       },
     };
   </script>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=15">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   {% include "partials/icons.html" %}
@@ -75,7 +76,7 @@
       {% if user.is_authenticated %}
       <header class="topbar">
         <div>
-          <button type="button" class="nav-toggle btn btn-ghost" id="nav-toggle">Menu</button>
+          <button type="button" class="nav-toggle btn btn-ghost" id="nav-toggle" data-nav-toggle>Menu</button>
           <p class="eyebrow">{% block eyebrow %}Operations{% endblock %}</p>
           <h1>{% block page_title %}Dashboard{% endblock %}</h1>
         </div>
@@ -90,8 +91,29 @@
       </main>
     </div>
   </div>
+  {% if user.is_authenticated %}
+  <nav class="phone-dock" aria-label="Main">
+    <a class="{% if request.resolver_match.url_name == 'home' %}is-active{% endif %}" href="{% url 'home' %}">
+      <svg class="icon"><use href="#i-grid"></use></svg><span>Home</span>
+    </a>
+    <a class="{% if request.resolver_match.url_name == 'ticket_list' or request.resolver_match.url_name == 'ticket_detail' %}is-active{% endif %}" href="{% url 'ticket_list' %}">
+      <svg class="icon"><use href="#i-list"></use></svg><span>Jobs</span>
+    </a>
+    <a class="phone-dock-new {% if request.resolver_match.url_name == 'ticket_create' %}is-active{% endif %}" href="{% url 'ticket_create' %}">
+      <svg class="icon"><use href="#i-plus"></use></svg><span>New</span>
+    </a>
+    {% if user.is_admin_role %}
+    <a class="{% if request.resolver_match.url_name == 'pm_list' or request.resolver_match.url_name == 'pm_detail' or request.resolver_match.url_name == 'pm_analytics' %}is-active{% endif %}" href="{% url 'pm_list' %}">
+      <svg class="icon"><use href="#i-calendar"></use></svg><span>Plans</span>
+    </a>
+    {% endif %}
+    <button type="button" data-nav-toggle>
+      <svg class="icon"><use href="#i-menu"></use></svg><span>More</span>
+    </button>
+  </nav>
+  {% endif %}
   {% endblock %}
   {% include "partials/toasts.html" %}
-  <script src="{% static 'js/app.js' %}"></script>
+  <script src="{% static 'js/app.js' %}?v=3"></script>
 </body>
 </html>

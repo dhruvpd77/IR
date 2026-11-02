@@ -136,27 +136,27 @@
     </div>
   </article>
   {% elif user.is_admin_role and ticket.status == 'attempted' %}
-  <article class="view-card view-notes">
+  <article class="view-card view-notes" id="work-notes">
     <h2>Work notes</h2>
     <div class="view-body">
-    <form method="post" action="{% url 'ticket_notes' ticket.pk %}" class="stack js-once">
+    <form method="post" action="{% url 'ticket_notes' ticket.pk %}" class="ask-form js-once">
       {% csrf_token %}
-      <label class="lbl">What did you find, and how long has the work taken?
-        <textarea name="attempt_notes" placeholder="Example: On the machine at 14:20. Seal face is scored. Waiting on a spare.">{{ ticket.attempt_notes }}</textarea>
+      <label class="lbl">What did you find?
+        <textarea name="attempt_notes" placeholder="Example: On the machine at 14:20. Waiting on a spare.">{{ ticket.attempt_notes }}</textarea>
       </label>
-      <button class="btn btn-dark" type="submit">Save notes</button>
+      <button class="btn btn-dark ask-send" type="submit">Save notes</button>
     </form>
     </div>
   </article>
-  <article class="view-card view-done">
+  <article class="view-card view-done" id="mark-done">
     <h2>Mark done</h2>
     <div class="view-body">
-    <form method="post" action="{% url 'ticket_complete' ticket.pk %}" class="job-do js-once">
+    <form method="post" action="{% url 'ticket_complete' ticket.pk %}" class="ask-form js-once">
       {% csrf_token %}
       <label class="lbl">Closing note
         <textarea name="completion_notes" required minlength="5" placeholder="What was fixed, and that the machine is running again."></textarea>
       </label>
-      <button class="btn btn-primary" type="submit">Mark done</button>
+      <button class="btn btn-primary ask-send" type="submit">Mark done</button>
     </form>
     </div>
   </article>
@@ -230,6 +230,20 @@
     </div>
   </article>
 </div>
+{% if user.is_admin_role and ticket.status == 'pending' %}
+<div class="phone-bar">
+  <form method="post" action="{% url 'ticket_attempt' ticket.pk %}">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit">Accept</button>
+  </form>
+  <button type="button" class="btn btn-reject" data-reject="{% url 'ticket_reject' ticket.pk %}">Reject</button>
+</div>
+{% elif user.is_admin_role and ticket.status == 'attempted' %}
+<div class="phone-bar phone-bar-one">
+  <a class="btn btn-dark" href="#work-notes">Notes</a>
+  <a class="btn btn-primary" href="#mark-done">Mark done</a>
+</div>
+{% endif %}
 {% include "partials/reject_dialog.html" %}
 
 <div id="lightbox" class="lightbox" hidden>

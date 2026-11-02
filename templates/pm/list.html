@@ -81,7 +81,115 @@
   </a>
 </div>
 
-<div class="sheet sheet-plain table-wrap">
+{% if day_groups %}
+<div class="pm-days">
+  {% for day in day_groups %}
+  <section class="pm-day">
+    <header class="pm-day-hd">
+      <b>{{ day.date|date:"l, d M Y" }}</b>
+      {% if day.tasks %}<span>{{ day.tasks|length }} scheduled</span>{% else %}<span>No schedule</span>{% endif %}
+    </header>
+    {% if day.tasks %}
+    <div class="phone-jobs">
+      {% for task in day.tasks %}
+      <article class="phone-job {% if task.is_done %}status-completed{% elif task.is_overdue %}status-overdue{% elif task.is_reminder %}status-due{% else %}status-upcoming{% endif %}">
+        <a class="phone-job-main" href="{% url 'pm_detail' task.pk %}">
+          <div class="phone-job-top">
+            <span class="pill {% if task.is_done %}status-completed{% elif task.is_overdue %}status-rejected{% elif task.is_reminder %}status-pending{% else %}status-attempted{% endif %}">
+              {% if task.is_done %}Done{% elif task.is_overdue %}Overdue{% elif task.is_reminder %}Due soon{% else %}Upcoming{% endif %}
+            </span>
+            <span>{{ task.plan_date|date:"d M Y" }}</span>
+          </div>
+          <h2>{{ task.equipment_name }}</h2>
+          <p class="phone-job-place">{{ task.location }}</p>
+          <p class="muted">{{ task.value_stream }}{% if task.vendor_display %} · {{ task.vendor_display }}{% endif %} · {{ task.frequency }}</p>
+        </a>
+        <div class="phone-job-actions">
+          {% if not task.is_done %}
+          <button type="button" class="btn btn-primary" data-pm-complete="{% url 'pm_complete' task.pk %}" data-pm-name="{{ task.equipment_name }}" data-pm-today="{{ today|date:'Y-m-d' }}">Complete</button>
+          {% else %}
+          <a class="btn btn-primary" href="{% url 'pm_detail' task.pk %}">Open</a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="sheet sheet-plain table-wrap desk-only">
+      <table class="req-table">
+        <thead>
+          <tr>
+            <th>Value stream</th>
+            <th>Equipment</th>
+            <th>Location</th>
+            <th>Vendor</th>
+            <th>Frequency</th>
+            <th>Month</th>
+            <th>Plan date</th>
+            <th>Done date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in day.tasks %}
+          <tr class="{% if task.is_done %}status-completed{% elif task.is_overdue %}status-overdue{% elif task.is_reminder %}status-due{% else %}status-upcoming{% endif %}">
+            <td class="main-cell" data-label="Value stream"><b>{{ task.value_stream }}</b></td>
+            <td class="main-cell" data-label="Equipment">
+              <b>{{ task.equipment_name }}</b>
+              {% if task.asset_name %}<div class="muted">{{ task.asset_name }}{% if task.asset_number %} · {{ task.asset_number }}{% endif %}</div>{% endif %}
+            </td>
+            <td data-label="Location">{{ task.location }}</td>
+            <td data-label="Vendor">{% if task.vendor_display %}<b>{{ task.vendor_display }}</b>{% else %}—{% endif %}</td>
+            <td data-label="Frequency"><b>{{ task.frequency }}</b><div class="muted">{{ task.frequency_label }}</div></td>
+            <td data-label="Month">{{ task.schedule_month }}</td>
+            <td data-label="Plan date"><b>{{ task.plan_date|date:"d M Y" }}</b></td>
+            <td data-label="Done date">{% if task.completed_on %}<b>{{ task.completed_on|date:"d M Y" }}</b>{% else %}—{% endif %}</td>
+            <td data-label="Action">
+              <div class="table-actions">
+                {% if not task.is_done %}
+                <button type="button" class="btn btn-primary btn-sm" data-pm-complete="{% url 'pm_complete' task.pk %}" data-pm-name="{{ task.equipment_name }}" data-pm-today="{{ today|date:'Y-m-d' }}">Complete</button>
+                {% endif %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'pm_detail' task.pk %}">Open</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="pm-day-empty">No schedule</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<div class="phone-jobs">
+  {% for task in tasks %}
+  <article class="phone-job {% if task.is_done %}status-completed{% elif task.is_overdue %}status-overdue{% elif task.is_reminder %}status-due{% else %}status-upcoming{% endif %}">
+    <a class="phone-job-main" href="{% url 'pm_detail' task.pk %}">
+      <div class="phone-job-top">
+        <span class="pill {% if task.is_done %}status-completed{% elif task.is_overdue %}status-rejected{% elif task.is_reminder %}status-pending{% else %}status-attempted{% endif %}">
+          {% if task.is_done %}Done{% elif task.is_overdue %}Overdue{% elif task.is_reminder %}Due soon{% else %}Upcoming{% endif %}
+        </span>
+        <span>{{ task.plan_date|date:"d M Y" }}</span>
+      </div>
+      <h2>{{ task.equipment_name }}</h2>
+      <p class="phone-job-place">{{ task.location }}</p>
+      <p class="muted">{{ task.value_stream }}{% if task.vendor_display %} · {{ task.vendor_display }}{% endif %} · {{ task.frequency }}</p>
+    </a>
+    <div class="phone-job-actions">
+      {% if not task.is_done %}
+      <button type="button" class="btn btn-primary" data-pm-complete="{% url 'pm_complete' task.pk %}" data-pm-name="{{ task.equipment_name }}" data-pm-today="{{ today|date:'Y-m-d' }}">Complete</button>
+      {% else %}
+      <a class="btn btn-primary" href="{% url 'pm_detail' task.pk %}">Open</a>
+      {% endif %}
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty">{% if month %}Nothing in {{ month }} for this filter.{% else %}Nothing in this list.{% endif %}</p>
+  {% endfor %}
+</div>
+<div class="sheet sheet-plain table-wrap desk-only">
   <table class="req-table">
     <thead>
       <tr>
@@ -125,7 +233,8 @@
     </tbody>
   </table>
 </div>
-{% if page.paginator.num_pages > 1 %}
+{% endif %}
+{% if page and page.paginator.num_pages > 1 %}
 <nav class="pm-pages">
   {% if page.has_previous %}<a href="?view={{ view }}&q={{ q|urlencode }}{% if month %}&month={{ month|urlencode }}{% endif %}{% if week %}&week={{ week|urlencode }}{% endif %}{% if stream %}&stream={{ stream|urlencode }}{% endif %}{% if vendor %}&vendor={{ vendor|urlencode }}{% endif %}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
   <span>Page {{ page.number }} of {{ page.paginator.num_pages }}{% if month %} · {{ month }}{% endif %}{% if week_label %} · {{ week_label }}{% endif %}</span>

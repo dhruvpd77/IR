@@ -9,27 +9,34 @@
 <section class="help-strip">
   Upload the plant sheet with columns ValueStream, Equipment Name, and Location. Existing names are kept, and new rows are added. User accounts are not changed.
 </section>
-<form method="post" enctype="multipart/form-data" class="panel js-once">
+<form method="post" enctype="multipart/form-data" class="ask-form ask-upload js-once">
   {% csrf_token %}
-  <div class="panel-bd stack">
+  <section class="ask-step ask-s2">
+    <span class="ask-num">1</span>
     <label class="lbl">Excel or CSV file
+      <span class="hint">Columns: ValueStream, Equipment Name, and Location.</span>
       <input type="file" name="file" accept=".xlsx,.csv" required>
     </label>
-    <button class="btn btn-primary" type="submit">Upload catalog</button>
-  </div>
+  </section>
+  <button class="btn btn-primary ask-send" type="submit">Upload catalog</button>
 </form>
-<div class="cat-grid">
+<div class="cat-board">
   {% for cat in categories %}
-  <article class="choice-card" style="cursor:default">
-    <span class="choice-code">{{ cat.code }}</span>
-    <span class="choice-title">{{ cat.name }}</span>
-    <span class="choice-copy">{{ cat.description }}</span>
-    {% for sub in cat.subcategories.all %}
-    <div class="sub-line">
-      <b>{{ sub.name }}</b>
-      <span>{% for asset in sub.assets.all %}{{ asset.location }}{% if not forloop.last %}, {% endif %}{% empty %}No location yet{% endfor %}</span>
-    </div>
-    {% endfor %}
+  <article class="cat-card">
+    <header>
+      <b>{{ cat.name }}</b>
+      <span>{{ cat.subcategories.all|length }}</span>
+    </header>
+    <ul>
+      {% for sub in cat.subcategories.all %}
+      <li>
+        <b>{{ sub.name }}</b>
+        <span>{% for asset in sub.assets.all %}{{ asset.location }}{% if not forloop.last %}, {% endif %}{% empty %}No location yet{% endfor %}</span>
+      </li>
+      {% empty %}
+      <li><span>No equipment yet</span></li>
+      {% endfor %}
+    </ul>
   </article>
   {% empty %}
   <p class="empty">The catalog is empty. Upload an Excel file to fill it.</p>

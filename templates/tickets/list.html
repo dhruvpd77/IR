@@ -32,7 +32,36 @@
 </form>
 <p class="muted">Showing {{ shown }}</p>
 
-<div class="sheet sheet-plain table-wrap">
+<div class="phone-jobs">
+  {% for ticket in tickets %}
+  <article class="phone-job status-{{ ticket.status }}">
+    <a class="phone-job-main" href="{% url 'ticket_detail' ticket.pk %}">
+      <div class="phone-job-top">
+        <span class="pill status-{{ ticket.status }}"><span class="pill-dot"></span>{{ ticket.get_status_display }}</span>
+        <span>{{ ticket.ticket_no }}</span>
+      </div>
+      <h2>{{ ticket.subcategory.name }}</h2>
+      <p class="phone-job-place">{{ ticket.asset.location }}</p>
+      <p class="muted">{{ ticket.category.name }} · {{ ticket.raised_by.get_full_name|default:ticket.raised_by.username }} · {{ ticket.created_at|date:"d M, H:i" }}</p>
+      <div class="phone-job-idle">{% include "partials/idle_clock.html" %}</div>
+    </a>
+    <div class="phone-job-actions">
+      {% if user.is_admin_role and ticket.status == 'pending' %}
+      <form method="post" action="{% url 'ticket_attempt' ticket.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Accept</button>
+      </form>
+      <button type="button" class="btn btn-reject" data-reject="{% url 'ticket_reject' ticket.pk %}">Reject</button>
+      {% else %}
+      <a class="btn btn-primary" href="{% url 'ticket_detail' ticket.pk %}">Open</a>
+      {% endif %}
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty">No requests match this filter.</p>
+  {% endfor %}
+</div>
+<div class="sheet sheet-plain table-wrap desk-only">
   <table class="req-table">
     <thead>
       <tr>

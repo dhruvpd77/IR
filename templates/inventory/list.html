@@ -17,7 +17,27 @@
   <a class="btn btn-ghost" href="?low=1">Low stock ({{ low_count }})</a>
   {% endif %}
 </form>
-<div class="panel">
+<div class="phone-jobs">
+  {% for item in items %}
+  <article class="phone-job {% if item.is_low %}status-due{% else %}status-completed{% endif %}">
+    <a class="phone-job-main" href="{% url 'inventory_detail' item.pk %}">
+      <div class="phone-job-top">
+        {% if item.is_low %}<span class="pill status-pending">Low</span>{% else %}<span class="pill status-completed">Healthy</span>{% endif %}
+        <span>{{ item.sku }}</span>
+      </div>
+      <h2>{{ item.name }}</h2>
+      <p class="phone-job-place">{{ item.location }}</p>
+      <p class="muted">On hand {{ item.quantity|intcomma }} {{ item.unit }} · minimum {{ item.min_quantity }}</p>
+    </a>
+    <div class="phone-job-actions">
+      <a class="btn btn-primary" href="{% url 'inventory_detail' item.pk %}">Open</a>
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty">No parts match this view.</p>
+  {% endfor %}
+</div>
+<div class="panel desk-only">
   <table class="data-table">
     <thead>
       <tr><th>Part</th><th>Location</th><th>On hand</th><th>Minimum</th><th>Level</th><th></th></tr>

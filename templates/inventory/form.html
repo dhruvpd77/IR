@@ -3,21 +3,32 @@
 {% block eyebrow %}Stores{% endblock %}
 {% block page_title %}Add a part{% endblock %}
 {% block content %}
-<a class="back" href="{% url 'inventory_list' %}">Back to inventory</a>
-<form method="post" class="panel js-once">
+<a class="back" href="{% url 'inventory_list' %}">← Inventory</a>
+<form method="post" class="ask-form js-once">
   {% csrf_token %}
-  <div class="panel-bd form-grid">
+  <section class="ask-step">
+    <span class="ask-num">1</span>
     <label class="lbl">Part code
       <input name="sku" required value="{{ form.sku.value|default_if_none:'' }}">
       {{ form.sku.errors }}
     </label>
+  </section>
+  <section class="ask-step">
+    <span class="ask-num">2</span>
     <label class="lbl">Name
       <input name="name" required value="{{ form.name.value|default_if_none:'' }}">
       {{ form.name.errors }}
     </label>
-    <label class="lbl wide">Description
-      <textarea name="description">{{ form.description.value|default_if_none:'' }}</textarea>
+  </section>
+  <section class="ask-step">
+    <span class="ask-num">3</span>
+    <label class="lbl">Where is it kept?
+      <input name="location" required value="{{ form.location.value|default_if_none:'' }}">
+      {{ form.location.errors }}
     </label>
+  </section>
+  <section class="ask-step">
+    <span class="ask-num">4</span>
     <label class="lbl">Unit
       <select name="unit">
         <option value="pcs" {% if form.unit.value|default:"pcs" == "pcs" %}selected{% endif %}>Pieces</option>
@@ -27,19 +38,26 @@
         <option value="metre" {% if form.unit.value == "metre" %}selected{% endif %}>Metre</option>
       </select>
     </label>
-    <label class="lbl">Location
-      <input name="location" required value="{{ form.location.value|default_if_none:'' }}">
-      {{ form.location.errors }}
+  </section>
+  <section class="ask-step">
+    <span class="ask-num">5</span>
+    <div class="ask-pair">
+      <label class="lbl">Quantity now
+        <input type="number" name="quantity" min="0" required value="{{ form.quantity.value|default_if_none:'0' }}">
+        {{ form.quantity.errors }}
+      </label>
+      <label class="lbl">Minimum
+        <input type="number" name="min_quantity" min="0" required value="{{ form.min_quantity.value|default_if_none:'0' }}">
+        {{ form.min_quantity.errors }}
+      </label>
+    </div>
+  </section>
+  <section class="ask-step">
+    <span class="ask-num">6</span>
+    <label class="lbl">Notes
+      <textarea name="description" placeholder="Optional">{{ form.description.value|default_if_none:'' }}</textarea>
     </label>
-    <label class="lbl">Opening quantity
-      <input type="number" name="quantity" min="0" required value="{{ form.quantity.value|default_if_none:'0' }}">
-      {{ form.quantity.errors }}
-    </label>
-    <label class="lbl">Minimum
-      <input type="number" name="min_quantity" min="0" required value="{{ form.min_quantity.value|default_if_none:'0' }}">
-      {{ form.min_quantity.errors }}
-    </label>
-    <div class="wide"><button class="btn btn-primary" type="submit">Save part</button></div>
-  </div>
+  </section>
+  <button class="btn btn-primary ask-send" type="submit">Save part</button>
 </form>
 {% endblock %}
